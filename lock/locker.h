@@ -41,7 +41,7 @@ private:
 class locker
 {
 public:
-    locker()
+    locker()//互斥锁
     {
         if (pthread_mutex_init(&m_mutex, NULL) != 0)
         {
