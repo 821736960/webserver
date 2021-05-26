@@ -43,6 +43,10 @@ threadpool<T>::threadpool( connection_pool *connPool, int thread_number, int max
     for (int i = 0; i < thread_number; ++i)
     {
         //printf("create the %dth thread\n",i);
+       //     int pthread_create (pthread_t *thread_tid,                 //返回新生成的线程的id
+      //     const pthread_attr_t *attr,         //指向线程属性的指针,通常设置为NULL
+      //    void * (*start_routine) (void *),   //处理线程函数的地址
+     //     void *arg);                         //start_routine()中的参数
         if (pthread_create(m_threads + i, NULL, worker, this) != 0)
         {
             delete[] m_threads;
