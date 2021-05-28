@@ -32,43 +32,43 @@ private:
     bool m_stop;                //是否结束线程
     connection_pool *m_connPool;  //数据库
 };
-template <typename T>
+template <typename T>//本类的构造函数
 threadpool<T>::threadpool( connection_pool *connPool, int thread_number, int max_requests) : m_thread_number(thread_number), m_max_requests(max_requests), m_stop(false), m_threads(NULL),m_connPool(connPool)
 {
     if (thread_number <= 0 || max_requests <= 0)
         throw std::exception();
-    m_threads = new pthread_t[m_thread_number];
+    m_threads = new pthread_t[m_thread_number];//描述线程池的数组，
     if (!m_threads)
         throw std::exception();
     for (int i = 0; i < thread_number; ++i)
     {
         //printf("create the %dth thread\n",i);
-       //     int pthread_create (pthread_t *thread_tid,                 //返回新生成的线程的id
-      //     const pthread_attr_t *attr,         //指向线程属性的指针,通常设置为NULL
-      //    void * (*start_routine) (void *),   //处理线程函数的地址
+       //     int pthread_create (pthread_t *thread_tid,   //新创建的线程ID指向的内存单元。
+      //     const pthread_attr_t *attr,         //指向线程属性的指针,通常设置为NULL,默认非分离属性的，
+      //    void * (*start_routine) (void *),   //处理线程函数的地址，新创建的线程从函数的地址开始运行,const
      //     void *arg);                         //start_routine()中的参数
         if (pthread_create(m_threads + i, NULL, worker, this) != 0)
         {
             delete[] m_threads;
             throw std::exception();
         }
-        if (pthread_detach(m_threads[i]))
+        if (pthread_detach(m_threads[i]))//将线程进行分离后，不用单独对工作线程进行回收
         {
             delete[] m_threads;
             throw std::exception();
         }
     }
 }
-template <typename T>
+template <typename T>//析构函数
 threadpool<T>::~threadpool()
 {
     delete[] m_threads;
     m_stop = true;
 }
-template <typename T>
+template <typename T> //向请求队列中插入任务请求
 bool threadpool<T>::append(T *request)
 {
-    m_queuelocker.lock();
+    m_queuelocker.lock();//保护请求队列的互斥锁    
     if (m_workqueue.size() > m_max_requests)
     {
         m_queuelocker.unlock();
@@ -76,14 +76,14 @@ bool threadpool<T>::append(T *request)
     }
     m_workqueue.push_back(request);
     m_queuelocker.unlock();
-    m_queuestat.post();
+    m_queuestat.post();//通过信号量提醒有任务要处理
     return true;
 }
-template <typename T>
+template <typename T>//工作线程运行的函数  //它不断从工作队列中取出任务并执行之
 void *threadpool<T>::worker(void *arg)
 {
     threadpool *pool = (threadpool *)arg;
-    pool->run();
+    pool->run();//类的对象作为参数传递给静态函数(worker),在静态函数中引用这个对象,并调用其动态方法(run)。
     return pool;
 }
 template <typename T>
@@ -91,8 +91,8 @@ void threadpool<T>::run()
 {
     while (!m_stop)
     {
-        m_queuestat.wait();
-        m_queuelocker.lock();
+        m_queuestat.wait();//信号量等待
+        m_queuelocker.lock();//被唤醒后先加互斥锁
         if (m_workqueue.empty())
         {
             m_queuelocker.unlock();
