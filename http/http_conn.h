@@ -109,7 +109,7 @@ private:
     int m_sockfd;
     sockaddr_in m_address;
     char m_read_buf[READ_BUFFER_SIZE]; //请求报文数据存储buf
-    int m_read_idx;//buf长度
+    int m_read_idx;//已经读好的buf长度
     int m_checked_idx;//m_read_buf读取的位置m_checked_idx
     int m_start_line;//m_read_buf中已经解析的字符个数
     
