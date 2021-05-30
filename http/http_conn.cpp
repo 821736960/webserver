@@ -205,7 +205,7 @@ http_conn::LINE_STATUS http_conn::parse_line()
 }
 
 //循环读取客户数据，直到无数据可读或对方关闭连接
-//非阻塞ET工作模式下，需要一次性将数据读完
+//非阻塞ET工作模式下，需要一次性将数据读完，读取到m_read_buffer中
 bool http_conn::read_once()
 {
     if (m_read_idx >= READ_BUFFER_SIZE)
