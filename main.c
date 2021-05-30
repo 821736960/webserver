@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    http_conn *users = new http_conn[MAX_FD];
+    http_conn *users = new http_conn[MAX_FD];//创建MAX_FD个http类对
     assert(users);
 
     //初始化数据库读取表
@@ -150,8 +150,8 @@ int main(int argc, char *argv[])
     epollfd = epoll_create(5);
     assert(epollfd != -1);
 
-    addfd(epollfd, listenfd, false);
-    http_conn::m_epollfd = epollfd;
+    addfd(epollfd, listenfd, false);//将listenfd放在epoll树上
+    http_conn::m_epollfd = epollfd;//将上述epollfd赋值给http类对象的m_epollfd属性
 
     //创建管道
     ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
@@ -170,13 +170,13 @@ int main(int argc, char *argv[])
 
     while (!stop_server)
     {
-        int number = epoll_wait(epollfd, events, MAX_EVENT_NUMBER, -1);
+        int number = epoll_wait(epollfd, events, MAX_EVENT_NUMBER, -1);//等待epollfd上有事件的产生
         if (number < 0 && errno != EINTR)
         {
             LOG_ERROR("%s", "epoll failure");
             break;
         }
-
+         //对所有就绪事件进行处理，listenfd和confd
         for (int i = 0; i < number; i++)
         {
             int sockfd = events[i].data.fd;
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
             {
                 struct sockaddr_in client_address;
                 socklen_t client_addrlength = sizeof(client_address);
-#ifdef listenfdLT
+#ifdef listenfdLT//LT水平触发
                 int connfd = accept(listenfd, (struct sockaddr *)&client_address, &client_addrlength);
                 if (connfd < 0)
                 {
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
                 timer_lst.add_timer(timer);
 #endif
 
-#ifdef listenfdET
+#ifdef listenfdET //ET非阻塞边缘触发 //需要循环接收数据
                 while (1)
                 {
                     int connfd = accept(listenfd, (struct sockaddr *)&client_address, &client_addrlength);
@@ -246,7 +246,7 @@ int main(int argc, char *argv[])
                 continue;
 #endif
             }
-
+             //处理异常
             else if (events[i].events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR))
             {
                 //服务器端关闭连接，移除对应的定时器
