@@ -107,4 +107,69 @@ process_read通过while循环，将【主 从】状态机进行封装，从buf�
 该类对象由主线程创建，read_once()函数读取浏览器发来的全部数据存到buffer
 （1）调用构造函数初始化这对象，记录sockfd等属性；
 （2）read_once()函数读取浏览器发来的全部数据存到buffer
+```cpp
+//循环读取客户数据，直到无数据可读或对方关闭连接
+//非阻塞ET工作模式下，需要一次性将数据读完，读取到m_read_buffer中
+bool http_conn::read_once()
+{
+    if (m_read_idx >= READ_BUFFER_SIZE)//m_read_idx 已经读到buf的数据
+    {
+        return false;
+    }
+    int bytes_read = 0;
+
+#ifdef connfdLT //LT模式，不用一次性读完
+    //从内核buffer拷贝数据到用户层buffer
+    bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
+    m_read_idx += bytes_read;//更新已经读到buf的数据
+
+    if (bytes_read <= 0)
+    {
+        return false;
+    }
+
+    return true;
+
+#endif
+
+#ifdef connfdET //ET模式,循环读取直到读完
+    while (true)
+    {   //成功执行时，返回接收到的字节数;另一端已关闭则返回0;失败返回-1，errno被设为以下的某个值 ：https://blog.csdn.net/mercy_ps/article/details/82224128
+        //https://www.cnblogs.com/ellisonzhang/p/10412021.html
+        bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
+        if (bytes_read == -1)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)//非阻塞模式下的两种情况，表明et已经读完
+                break;
+            return false;
+        }
+        else if (bytes_read == 0)//另一端已关闭则返回0
+        {
+            return false;
+        }
+        m_read_idx += bytes_read;
+    }
+    return true;
+#endif
+}
+```
+# recv函数
+int recv( SOCKET s, char FAR *buf, int len, int flags);
+
+每个TCP socket在内核中都有一个发送缓冲区和一个接收缓冲区，TCP的全双工的工作模式以及TCP的流量(拥塞)控制便是依赖于这两个独立的buffer以及buffer的填充状态。接收缓冲区把数据缓存入内核，应用进程一直没有调用recv()进行读取的话，此数据会一直缓存在相应socket的接收缓冲区内。再啰嗦一点，不管进程是否调用recv()读取socket，对端发来的数据都会经由内核接收并且缓存到socket的内核接收缓冲区之中。recv()所做的工作，就是把内核缓冲区中的数据拷贝到应用层用户的buffer里面，并返回，仅此而已。  
+默认 socket 是阻塞的，阻塞与非阻塞recv返回值没有区分，都是 <0 出错， =0 连接关闭， >0 接收到数据大小。
+
+失败返回-1，errno被设为以下的某个值 ：
+EAGAIN：套接字已标记为非阻塞，而接收操作被阻塞或者接收超时 
+EBADF：sock不是有效的描述词 
+ECONNREFUSE：远程主机阻绝网络连接 
+EFAULT：内存空间访问出错 
+EINTR：操作被信号中断 
+EINVAL：参数无效 
+ENOMEM：内存不足 
+ENOTCONN：与面向连接关联的套接字尚未被连接上 
+ENOTSOCK：sock索引的不是套接字 当返回值是0时，为正常关闭连接；
+EWOULDBLOCK：用于非阻塞模式，不需要重新读或者写
+
+
 
