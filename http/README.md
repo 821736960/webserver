@@ -105,3 +105,6 @@ process_read通过while循环，将【主 从】状态机进行封装，从buf�
 
 # http类
 该类对象由主线程创建，read_once()函数读取浏览器发来的全部数据存到buffer
+（1）调用构造函数初始化这对象，记录sockfd等属性；
+（2）read_once()函数读取浏览器发来的全部数据存到buffer
+
