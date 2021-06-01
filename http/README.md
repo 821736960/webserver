@@ -102,3 +102,6 @@ process_read通过while循环，将【主 从】状态机进行封装，从buf�
 调用get_line函数，通过m_start_line将从状态机读取数据间接赋给text
 
 主状态机解析text
+
+# http类
+该类对象由主线程创建，read_once()函数读取浏览器发来的全部数据存到buffer
