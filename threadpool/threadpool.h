@@ -12,13 +12,13 @@ template <typename T>
 class threadpool//一个线程池类
 {
 public:
-    /*thread_number是线程池中线程的数量，max_requests是请求队列中最多允许的、等待处理的请求的数量*/
+    /*thread_number是线程池中线程的数量，max_requests是请求队列中最多允许的、等待处理的请求的数量，connPool数据库连接指针*/
     threadpool(connection_pool *connPool, int thread_number = 8, int max_request = 10000);
     ~threadpool();
-    bool append(T *request);
+    bool append(T *request);//向请求队列中插入任务请求
 
 private:
-    /*工作线程运行的函数，它不断从工作队列中取出任务并执行之*/
+    /*工作线程运行的函数，它不断从工作队列中取出任务并执行之，如果处理线程函数为类成员函数时，需要将其设置为静态成员函数，无this指针，与类型匹配。*/
     static void *worker(void *arg);
     void run();
 
@@ -37,7 +37,7 @@ threadpool<T>::threadpool( connection_pool *connPool, int thread_number, int max
 {
     if (thread_number <= 0 || max_requests <= 0)
         throw std::exception();
-    m_threads = new pthread_t[m_thread_number];//描述线程池的数组，
+    m_threads = new pthread_t[m_thread_number];//创建描述线程池的数组，
     if (!m_threads)
         throw std::exception();
     for (int i = 0; i < thread_number; ++i)
@@ -79,11 +79,11 @@ bool threadpool<T>::append(T *request)
     m_queuestat.post();//通过信号量提醒有任务要处理
     return true;
 }
-template <typename T>//工作线程运行的函数  //它不断从工作队列中取出任务并执行之
+template <typename T>//所有工作线程都要运行的函数  //它不断从工作队列中取出任务并执行之
 void *threadpool<T>::worker(void *arg)
 {
     threadpool *pool = (threadpool *)arg;
-    pool->run();//类的对象作为参数传递给静态函数(worker),在静态函数中引用这个对象,并调用其动态方法(run)。
+    pool->run();//线程池类的对象作为参数（this）传递给静态函数(worker),在静态函数中引用这个对象,并调用其动态方法(run)。
     return pool;
 }
 template <typename T>
@@ -91,7 +91,7 @@ void threadpool<T>::run()
 {
     while (!m_stop)
     {
-        m_queuestat.wait();//信号量等待
+        m_queuestat.wait();//信号量等待，直到收到了post来的信号
         m_queuelocker.lock();//被唤醒后先加互斥锁
         if (m_workqueue.empty())
         {
@@ -104,7 +104,7 @@ void threadpool<T>::run()
         if (!request)
             continue;
 
-        connectionRAII mysqlcon(&request->mysql, m_connPool);
+        connectionRAII mysqlcon(&request->mysql, m_connPool);//将request去处理
         
         request->process();
     }
