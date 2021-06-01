@@ -67,7 +67,7 @@ int setnonblocking(int fd)
     return old_option;
 }
 
-//将内核事件表注册读事件，ET模式，选择开启EPOLLONESHOT 内核事件表注册新事件，开启EPOLLONESHOT，针对客户端连接的描述符，listenfd不用开启
+//将内核事件表注册读事件，ET模式，选择开启EPOLLONESHOT 内核事件表注册新事件，开启EPOLLONESHOT，针对客户端连接的connfd描述符，listenfd不用开启
 
 void addfd(int epollfd, int fd, bool one_shot)
 {
