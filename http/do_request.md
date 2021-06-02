@@ -198,6 +198,98 @@ connection记录连接状态，用于告诉浏览器端保持长连接
 
 add_blank_line添加空行
 
+```cpp
+bool http_conn::process_write(HTTP_CODE ret)
+{
+    switch (ret)
+    {
+    //内部错误，500
+    case INTERNAL_ERROR:
+    {    //状态行
+        add_status_line(500, error_500_title);
+        //消息报头
+        add_headers(strlen(error_500_form));
+        if (!add_content(error_500_form))
+            return false;
+        break;
+    }
+    //报文语法有误，404
+    case BAD_REQUEST:
+    {
+        add_status_line(404, error_404_title);
+        add_headers(strlen(error_404_form));
+        if (!add_content(error_404_form))
+            return false;
+        break;
+    }
+    //资源没有访问权限，403
+    case FORBIDDEN_REQUEST:
+    {
+        add_status_line(403, error_403_title);
+        add_headers(strlen(error_403_form));
+        if (!add_content(error_403_form))
+            return false;
+        break;
+    }
+    //文件存在，200
+    case FILE_REQUEST:
+    {
+        add_status_line(200, ok_200_title);
+        //如果请求的资源存在
+        if (m_file_stat.st_size != 0)
+        {
+            add_headers(m_file_stat.st_size);
+             //第一个iovec指针指向响应报文缓冲区，长度指向m_write_idx
+            m_iv[0].iov_base = m_write_buf;
+            m_iv[0].iov_len = m_write_idx;
+            //第二个iovec指针指向mmap返回的文件指针，长度指向文件大小
+            m_iv[1].iov_base = m_file_address;
+            m_iv[1].iov_len = m_file_stat.st_size;
+            m_iv_count = 2;
+            //发送的全部数据为响应报文头部信息和文件大小
+            bytes_to_send = m_write_idx + m_file_stat.st_size;
+            return true;
+        }
+        else//如果请求的资源大小为0，则返回空白html文件
+        {
+            const char *ok_string = "<html><body></body></html>";
+            add_headers(strlen(ok_string));
+            if (!add_content(ok_string))
+                return false;
+        }
+    }
+    default:
+        return false;
+    }
+    //除FILE_REQUEST状态外，其余状态只申请一个iovec，指向响应报文缓冲区
+    m_iv[0].iov_base = m_write_buf;
+    m_iv[0].iov_len = m_write_idx;
+    m_iv_count = 1;
+    bytes_to_send = m_write_idx;
+    return true;
+}
+```
+
+# http_conn::write
+服务器子线程调用process_write完成响应报文写入write buf，随后注册epollout事件。服务器主线程检测写事件，并调用http_conn::write函数将响应报文发送给浏览器端。
+该函数具体逻辑如下：
+
+在生成响应报文时初始化byte_to_send，包括头部信息和文件数据大小。通过writev函数循环发送响应报文数据，根据返回值更新byte_have_send和iovec结构体的指针和长度，并判断响应报文整体是否发送成功。  
+
+若writev单次发送成功，更新byte_to_send和byte_have_send的大小，若响应报文整体发送成功,则取消mmap映射,并判断是否是长连接.
+
+长连接重置http类实例，注册读事件，不关闭连接，
+
+短连接直接关闭连接
+
+若writev单次发送不成功，判断是否是写缓冲区满了。
+
+若不是因为缓冲区满了而失败，取消mmap映射，关闭连接
+
+若eagain则满了，更新iovec结构体的指针和长度，并注册写事件，等待下一次写事件触发（当写缓冲区从不可写变为可写，触发epollout），因此在此期间无法立即接收到同一用户的下一请求，但可以保证连接的完整性。
+
+
+
 
 
 
