@@ -1,1 +1,3 @@
-
+# process_read
+函数的返回值是对请求的文件分析后的结果，一部分是语法错误导致的BAD_REQUEST，一部分是do_request的返回结果.
+do_request函数将网站根目录和url文件拼接，然后通过stat判断该文件属性。
