@@ -270,7 +270,7 @@ bool http_conn::process_write(HTTP_CODE ret)
 }
 ```
 
-# http_conn::write
+# http_conn::write 大文件传输有bug
 服务器子线程调用process_write完成响应报文写入write buf，随后注册epollout事件。服务器主线程检测写事件，并调用http_conn::write函数将响应报文发送给浏览器端。
 该函数具体逻辑如下：
 
@@ -287,6 +287,65 @@ bool http_conn::process_write(HTTP_CODE ret)
 若不是因为缓冲区满了而失败，取消mmap映射，关闭连接
 
 若eagain则满了，更新iovec结构体的指针和长度，并注册写事件，等待下一次写事件触发（当写缓冲区从不可写变为可写，触发epollout），因此在此期间无法立即接收到同一用户的下一请求，但可以保证连接的完整性。
+```cpp
+bool http_conn::write()
+{
+    int temp = 0;
+    //若要发送的数据长度为0,表示响应报文为空，一般不会出现这种情况
+    if (bytes_to_send == 0)
+    {
+        modfd(m_epollfd, m_sockfd, EPOLLIN);
+        init();
+        return true;
+    }
+
+    while (1)
+    {   //将响应报文的状态行、消息头、空行和响应正文发送给浏览器端
+        temp = writev(m_sockfd, m_iv, m_iv_count);
+
+        if (temp < 0)
+        {
+            if (errno == EAGAIN)//判断缓冲区是否满了
+            {
+                modfd(m_epollfd, m_sockfd, EPOLLOUT);
+                return true;
+            }
+            unmap();
+            return false;
+        }
+
+        bytes_have_send += temp;//更新已发送字节
+        bytes_to_send -= temp;
+        if (bytes_have_send >= m_iv[0].iov_len)
+        {
+            m_iv[0].iov_len = 0;
+            m_iv[1].iov_base = m_file_address + (bytes_have_send - m_write_idx);
+            m_iv[1].iov_len = bytes_to_send;
+        }
+        else
+        {
+            m_iv[0].iov_base = m_write_buf + bytes_have_send;
+            m_iv[0].iov_len = m_iv[0].iov_len - bytes_have_send;
+        }
+
+        if (bytes_to_send <= 0)
+        {
+            unmap();
+            modfd(m_epollfd, m_sockfd, EPOLLIN);
+
+            if (m_linger)
+            {
+                init();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+}
+```
 
 
 
