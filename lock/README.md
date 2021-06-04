@@ -1,7 +1,7 @@
 
 线程同步机制包装类
 ===============
-多线程同步，确保任一时刻只能有一个线程能进入关键代码段.
+多线程同步：确保任一时刻只能有一个线程能进入关键代码段（临界区）. 临界区是指执行数据更新的代码需要独占式地执行。
 > * 信号量 https://blog.csdn.net/u013457167/article/details/78318932
 > * 互斥锁
 > * 条件变量
@@ -12,19 +12,31 @@ RAII全称是“Resource Acquisition is Initialization”，直译过来是“�
 
 # 信号量
 信号量一般常用于保护一段代码，使其每次只被一个执行线程运行  
-sem_init用于对指定信号初始化，pshared为0，表示信号在当前进程的多个线程之间共享，value表示初始化信号的值。
+```cpp
+int sem_init(sem_t *sem,int pshared,unsigned int value);
+int sem_wait(sem_t *sem); 
+int sem_post(sem_t *sem); 
+int sem_destroy(sem_t *sem); 
+```
+sem_init用于对指定信号初始化，pshared为0，表示信号在当前进程的多个线程之间共享，否则信号量就可以在多个进程之间共享,value表示初始化信号的值。
 sem_wait表示等待这个信号量，直到信号量的值大于0，解除阻塞。解除阻塞后，sem的值-1，表示公共资源被执行减少了。当初始化value=0后，使用sem_wait会阻塞这个线程，这个线程函数就会等待其它线程函数调用sem_post增加了了这个值使它不再是0，才开始执行,然后value值-1。
 sem_post用于增加信号量的值+1，当有线程阻塞在这个信号量上时，调用这个函数会使其中的一个线程不在阻塞，选择机制由线程的调度策略决定。
 
-以上，成功返回0，失败返回errno
+以上，成功返回0，失败返回errno,-1
 
-# 互斥量
-pthread_mutex_init函数用于初始化互斥锁
+# 互斥量/互斥锁
+```cpp
+int pthread_mutex_init(&m_mutex, NULL);
+int pthread_mutex_destroy(&m_mutex);
+int pthread_mutex_lock(&m_mutex);
+int pthread_mutex_unlock(&m_mutex);
+```
+pthread_mutex_init函数以动态方式创建互斥锁，参数attr指定了新建互斥锁的属性。如果参数attr为NULL，则使用默认的互斥锁属性，默认属性为快速互斥锁 
 pthread_mutex_destory函数用于销毁互斥锁
 pthread_mutex_lock函数以原子操作方式给互斥锁加锁
 pthread_mutex_unlock函数以原子操作方式给互斥锁解锁
 
-以上，成功返回0，失败返回errno
+以上，成功返回0，失败返回errno,-1
 
 # 条件变量
 条件变量提供了一种线程间的通知机制,当某个共享数据达到某个值时,唤醒等待这个共享数据的线程.
