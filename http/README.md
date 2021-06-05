@@ -4,7 +4,7 @@ epoll_ctl函数
 #include <sys/epoll.h>
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
 ```
-epfd：为epoll_creat的句柄
+epfd：为epoll_creat的句柄，指向内核中的事件表
 
 op：表示动作，用3个宏来表示：
 
@@ -33,19 +33,19 @@ EPOLLERR：表示对应的文件描述符发生错误
 
 EPOLLHUP：表示对应的文件描述符被挂断；
 
-EPOLLET：将EPOLL设为边缘触发(Edge Triggered)模式，这是相对于默认的水平触发(Level Triggered)而言的
+EPOLLET：将EPOLL设为边缘触发(Edge Triggered)模式，这是相对于默认的水平触发(Level Triggered)而言的，必须设置成非阻塞
 
-EPOLLONESHOT：只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个socket的话，需要再次把这个socket加入到EPOLL队列里
+EPOLLONESHOT：只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个socket的话，需要再次把这个socket加入到EPOLL队列里，重置EPOLLONESHOT
 
 # LT ET
-水平触发 Lt
+## 水平触发 LT
 1. 对于读操作
 只要缓冲内容不为空，LT模式返回读就绪，直到你读完。
 
 2. 对于写操作
 只要缓冲区还不满，LT模式会返回写就绪。
 
-边缘触发 ET
+## 边缘触发 ET
 1. 对于读操作，
 （1）当缓冲区由不可读变为可读的时候，即缓冲区由空变为不空的时候。
 
@@ -65,10 +65,10 @@ EPOLLONESHOT：只监听一次事件，当监听完这次事件之后，如果�
 如果是边缘触发的不会立即返回,因为此时虽然有数据可读但是已经触发了一次通知,在这次通知到现在还没有新的数据到来,直到有新的数据到来epoll才会返回,此时老的数据和新的数据都可以读取到(当然是需要这次你尽可能的多读取).
 所以当我们写epoll网络模型时，如果我们用水平触发不用担心数据有没有读完因为下次epoll返回时，没有读完的socket依然会被返回，但是要注意这种模式下的写事件，因为是水平触发，每次socket可写时epoll都会返回，当我们写的数据包过大时，一次写不完，要多次才能写完或者每次socket写都写一个很小的数据包时，每次写都会被epoll检测到，因此长期关注socket写事件会无故cpu消耗过大甚至导致cpu跑满，
 
-为何 epoll 的 ET 模式一定要设置为非阻塞IO？
+## 为何 epoll 的 ET 模式一定要设置为非阻塞IO？
 ET模式下每次write或read需要循环write或read直到返回EAGAIN错误。以读操作为例，这是因为ET模式只在socket描述符状态发生变化时才触发事件，如果不一次把socket内核缓冲区的数据读完，会导致socket内核缓冲区中即使还有一部分数据，该socket的可读事件也不会被触发
 根据上面的讨论，若ET模式下使用阻塞IO，则程序一定会阻塞在最后一次write或read操作，因此说ET模式下一定要使用非阻塞IO
-# EPOLLONESHOT
+## EPOLLONESHOT
 
 一个线程读取某个socket上的数据后开始处理数据，在处理过程中该socket上又有新数据可读，此时另一个线程被唤醒读取，此时出现两个线程处理同一个socket
 我们期望的是一个socket连接在任一时刻都只被一个线程处理，通过epoll_ctl对该文件描述符注册epolloneshot事件，一个线程处理socket时，其他线程将无法处理，当该线程处理完后，需要通过epoll_ctl重置epolloneshot事件
