@@ -52,7 +52,9 @@ threadpool<T>::threadpool( connection_pool *connPool, int thread_number, int max
             delete[] m_threads;
             throw std::exception();
         }
-        if (pthread_detach(m_threads[i]))//将线程进行分离后，不用单独对工作线程进行回收
+        if (pthread_detach(m_threads[i]))//将线程进行分离后，不用单独对工作线程进行回收。
+            //在默认情况下通过pthread_create函数创建的线程是非分离属性的，由pthread_create函数的第二个参数决定，
+            //在非分离的情况下，当一个线程结束的时候，它所占用的系统资源并没有完全真正的释放，也没有真正终止。
         {
             delete[] m_threads;
             throw std::exception();
