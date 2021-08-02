@@ -19,7 +19,7 @@
 #define MAX_FD 65536           //最大文件描述符
 #define MAX_EVENT_NUMBER 10000 //最大事件数
 #define TIMESLOT 5             //最小超时单位
-
+//服务器配置选择
 #define SYNLOG  //同步写日志
 //#define ASYNLOG //异步写日志
 
@@ -27,22 +27,22 @@
 #define listenfdLT //水平触发阻塞
 
 //这三个函数在http_conn.cpp中定义，改变链接属性
-extern int addfd(int epollfd, int fd, bool one_shot);
-extern int remove(int epollfd, int fd);
-extern int setnonblocking(int fd);
+extern int addfd(int epollfd, int fd, bool one_shot); //往epoll添加fd
+extern int remove(int epollfd, int fd);//从epoll移除fd
+extern int setnonblocking(int fd); //ET模式下一定要使用非阻塞IO
 
 //设置定时器相关参数
-static int pipefd[2];
+static int pipefd[2];//建立一个pipe进行信号传送，统一事件源
 static sort_timer_lst timer_lst;
 static int epollfd = 0;
 
 //信号处理函数
 void sig_handler(int sig)
 {
-    //为保证函数的可重入性，保留原来的errno
+    //为保证函数的可重入性，保留原来的errno，//可重入性表示中断后再次进入该函数，环境变量与之前相同，不会丢失数据
     int save_errno = errno;
     int msg = sig;
-    send(pipefd[1], (char *)&msg, 1, 0);
+    send(pipefd[1], (char *)&msg, 1, 0);//收到心搏信号后，将信号值从管道写端写入，传输字符类型，而非整型
     errno = save_errno;
 }
 
@@ -65,7 +65,7 @@ void timer_handler()
     alarm(TIMESLOT);
 }
 
-//定时器回调函数，删除非活动连接在socket上的注册事件，并关闭
+//定时器callback回调函数，删除非活动连接在socket上的注册事件，并关闭fd
 void cb_func(client_data *user_data)
 {
     epoll_ctl(epollfd, EPOLL_CTL_DEL, user_data->sockfd, 0);
@@ -86,7 +86,7 @@ void show_error(int connfd, const char *info)
 int main(int argc, char *argv[])
 {
 #ifdef ASYNLOG
-    Log::get_instance()->init("ServerLog", 2000, 800000, 8); //异步日志模型
+    Log::get_instance()->init("ServerLog", 2000, 800000, 8); //异步日志模型，单例模式，初始化
 #endif
 
 #ifdef SYNLOG
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    int port = atoi(argv[1]);
+    int port = atoi(argv[1]); //控制台读取port端口号
 
     addsig(SIGPIPE, SIG_IGN);
 
