@@ -46,7 +46,7 @@ void sig_handler(int sig)
     errno = save_errno;
 }
 
-//设置信号函数
+//设置信号函数 ？？干嘛用的
 void addsig(int sig, void(handler)(int), bool restart = true)
 {
     struct sigaction sa;
@@ -76,6 +76,7 @@ void cb_func(client_data *user_data)
     Log::get_instance()->flush();
 }
 
+//干嘛用的
 void show_error(int connfd, const char *info)
 {
     printf("%s", info);
@@ -101,7 +102,7 @@ int main(int argc, char *argv[])
 
     int port = atoi(argv[1]); //控制台读取port端口号
 
-    addsig(SIGPIPE, SIG_IGN);
+    addsig(SIGPIPE, SIG_IGN);//为什么
 
     //创建数据库连接池
     connection_pool *connPool = connection_pool::GetInstance();
@@ -118,7 +119,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    http_conn *users = new http_conn[MAX_FD];//创建MAX_FD个http类对
+    http_conn *users = new http_conn[MAX_FD];//创建MAX_FD个http类对象
     assert(users);
 
     //初始化数据库读取表
@@ -139,6 +140,7 @@ int main(int argc, char *argv[])
     address.sin_port = htons(port);
 
     int flag = 1;
+    //创建listenfd，监听所有新来的连接
     setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag));
     ret = bind(listenfd, (struct sockaddr *)&address, sizeof(address));
     assert(ret >= 0);
@@ -156,16 +158,21 @@ int main(int argc, char *argv[])
     //创建管道
     ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
     assert(ret != -1);
+    //设置管道写端为非阻塞，为什么写端要非阻塞？
+    //send是将信息发送给套接字缓冲区，如果缓冲区满了，则会阻塞，这时候会进一步增加信号处理函数的执行时间，为此，将其修改为非阻塞。
     setnonblocking(pipefd[1]);
     addfd(epollfd, pipefd[0], false);
-
+    
+    //传递给主循环的信号值，这里只关注SIGALRM和SIGTERM
     addsig(SIGALRM, sig_handler, false);
     addsig(SIGTERM, sig_handler, false);
+    //循环条件
     bool stop_server = false;
 
     client_data *users_timer = new client_data[MAX_FD];
-
+    //超时标志
     bool timeout = false;
+    //每隔TIMESLOT时间触发SIGALRM信号
     alarm(TIMESLOT);
 
     while (!stop_server)
@@ -186,7 +193,8 @@ int main(int argc, char *argv[])
             {
                 struct sockaddr_in client_address;
                 socklen_t client_addrlength = sizeof(client_address);
-#ifdef listenfdLT//LT水平触发
+#ifdef listenfdLT//若为LT水平触发
+                //新建一个connfd
                 int connfd = accept(listenfd, (struct sockaddr *)&client_address, &client_addrlength);
                 if (connfd < 0)
                 {
