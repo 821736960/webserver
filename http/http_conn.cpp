@@ -350,19 +350,22 @@ http_conn::HTTP_CODE http_conn::parse_content(char *text)
     return NO_REQUEST;
 }
 
-//
+//解析报文，主从状态机
 http_conn::HTTP_CODE http_conn::process_read()
-{
+{    //初始化从状态机状态、HTTP请求解析结果
     LINE_STATUS line_status = LINE_OK;
     HTTP_CODE ret = NO_REQUEST;
     char *text = 0;
-
+                                                                            //parse_line为从状态机的具体实现
     while ((m_check_state == CHECK_STATE_CONTENT && line_status == LINE_OK) || ((line_status = parse_line()) == LINE_OK))
     {
         text = get_line();
+      //m_start_line是每一个数据行在m_read_buf中的起始位置
+       //m_checked_idx表示从状态机在m_read_buf中读取的位置
         m_start_line = m_checked_idx;
         LOG_INFO("%s", text);
         Log::get_instance()->flush();
+     
         switch (m_check_state)
         {
         case CHECK_STATE_REQUESTLINE:
@@ -386,6 +389,7 @@ http_conn::HTTP_CODE http_conn::process_read()
         case CHECK_STATE_CONTENT:
         {
             ret = parse_content(text);
+         //完整解析GET请求后，跳转到报文响应函数
             if (ret == GET_REQUEST)
                 return do_request();
             line_status = LINE_OPEN;
@@ -701,7 +705,7 @@ bool http_conn::process_write(HTTP_CODE ret)
 }
 void http_conn::process()
 {
-    HTTP_CODE read_ret = process_read();
+    HTTP_CODE read_ret = process_read();//报文解析函数,返回状态码
     if (read_ret == NO_REQUEST)
     {
         modfd(m_epollfd, m_sockfd, EPOLLIN);
