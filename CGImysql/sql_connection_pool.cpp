@@ -16,6 +16,7 @@ connection_pool::connection_pool()
 	this->FreeConn = 0;
 }
 
+//使用局部静态变量懒汉模式创建连接池。
 connection_pool *connection_pool::GetInstance()
 {
 	static connection_pool connPool;
