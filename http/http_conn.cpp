@@ -204,8 +204,7 @@ http_conn::LINE_STATUS http_conn::parse_line()
     return LINE_OPEN;
 }
 
-//循环读取客户数据，直到无数据可读或对方关闭连接
-//非阻塞ET工作模式下，需要一次性将数据读完，读取到m_read_buffer中
+//connfd上循环读取客户数据，直到无数据可读或对方关闭连接
 bool http_conn::read_once()
 {
     if (m_read_idx >= READ_BUFFER_SIZE)
@@ -228,13 +227,13 @@ bool http_conn::read_once()
 
 #endif
 
-#ifdef connfdET
+#ifdef connfdET //非阻塞ET工作模式下，需要一次性将数据读完，读取到m_read_buffer中
     while (true)
     {
         bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
         if (bytes_read == -1)
         {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            if (errno == EAGAIN || errno == EWOULDBLOCK)//直到eagain
                 break;
             return false;
         }
