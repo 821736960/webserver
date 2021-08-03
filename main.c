@@ -23,6 +23,7 @@
 #define SYNLOG  //同步写日志
 //#define ASYNLOG //异步写日志
 
+//监听的listenfd的触发模式
 //#define listenfdET //边缘触发非阻塞
 #define listenfdLT //水平触发阻塞
 
@@ -193,8 +194,8 @@ int main(int argc, char *argv[])
             {
                 struct sockaddr_in client_address;
                 socklen_t client_addrlength = sizeof(client_address);
-#ifdef listenfdLT//若为LT水平触发
-                //新建一个connfd
+#ifdef listenfdLT//若listenfd为LT水平触发
+                //每次只新建一个connfd，创建一个http_conn对象，插入到user数组（共有两个数组，分别是httpconn对象数组和client_data对象数组
                 int connfd = accept(listenfd, (struct sockaddr *)&client_address, &client_addrlength);
                 if (connfd < 0)
                 {
@@ -209,10 +210,10 @@ int main(int argc, char *argv[])
                 }
                 users[connfd].init(connfd, client_address);
 
-                //初始化client_data数据
-                //创建定时器，设置回调函数和超时时间，绑定用户数据，将定时器添加到链表中
+                //初始化client_data对象数据                
                 users_timer[connfd].address = client_address;
                 users_timer[connfd].sockfd = connfd;
+                //创建定时器，设置回调函数和超时时间，绑定用户数据，将定时器添加到链表中
                 util_timer *timer = new util_timer;
                 timer->user_data = &users_timer[connfd];
                 timer->cb_func = cb_func;
@@ -222,7 +223,7 @@ int main(int argc, char *argv[])
                 timer_lst.add_timer(timer);
 #endif
 
-#ifdef listenfdET //ET非阻塞边缘触发 //需要循环接收数据
+#ifdef listenfdET //listenfd为ET非阻塞边缘触发 //需要循环接收数据
                 while (1)
                 {
                     int connfd = accept(listenfd, (struct sockaddr *)&client_address, &client_addrlength);
@@ -240,9 +241,9 @@ int main(int argc, char *argv[])
                     users[connfd].init(connfd, client_address);
 
                     //初始化client_data数据
-                    //创建定时器，设置回调函数和超时时间，绑定用户数据，将定时器添加到链表中
                     users_timer[connfd].address = client_address;
-                    users_timer[connfd].sockfd = connfd;
+                    users_timer[connfd].sockfd = connfd;                    
+                    //创建定时器，设置回调函数和超时时间，绑定用户数据，将定时器添加到链表中
                     util_timer *timer = new util_timer;
                     timer->user_data = &users_timer[connfd];
                     timer->cb_func = cb_func;
