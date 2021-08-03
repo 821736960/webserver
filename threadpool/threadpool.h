@@ -8,7 +8,7 @@
 #include "../lock/locker.h"
 #include "../CGImysql/sql_connection_pool.h"
 
-template <typename T>
+template <typename T>//使用模板类编写
 class threadpool//一个线程池类
 {
 public:
@@ -108,7 +108,7 @@ void threadpool<T>::run()
 
         connectionRAII mysqlcon(&request->mysql, m_connPool);//将request去处理
         
-        request->process();
+        request->process();//调用http_conn的类对象中的process函数开始处理数据
     }
 }
 #endif
