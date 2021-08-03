@@ -3,7 +3,7 @@
 #include <map>
 #include <mysql/mysql.h>
 #include <fstream>
-
+ //connfd属性配置
 //#define connfdET //边缘触发非阻塞
 #define connfdLT //水平触发阻塞
 
@@ -28,6 +28,7 @@ const char *doc_root = "/home/qgy/github/TinyWebServer/root";
 map<string, string> users;
 locker m_lock;
 
+//数据库连接函数
 void http_conn::initmysql_result(connection_pool *connPool)
 {
     //先从连接池中取一个连接
@@ -68,7 +69,6 @@ int setnonblocking(int fd)
 }
 
 //将内核事件表注册读事件，ET模式，选择开启EPOLLONESHOT 内核事件表注册新事件，开启EPOLLONESHOT，针对客户端连接的connfd描述符，listenfd不用开启
-
 void addfd(int epollfd, int fd, bool one_shot)
 {
     epoll_event event;
@@ -99,8 +99,8 @@ void addfd(int epollfd, int fd, bool one_shot)
 //从内核时间表删除描述符
 void removefd(int epollfd, int fd)
 {
-    epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, 0);
-    close(fd);
+    epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, 0);//从epoll上删除
+    close(fd);//关闭
 }
 
 //将事件重置为EPOLLONESHOT
@@ -141,12 +141,12 @@ void http_conn::init(int sockfd, const sockaddr_in &addr)
     m_address = addr;
     //int reuse=1;
     //setsockopt(m_sockfd,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
-    addfd(m_epollfd, sockfd, true);
+    addfd(m_epollfd, sockfd, true);//加入监听
     m_user_count++;
-    init();
+    init();//调用内部的私有init()函数
 }
 
-//初始化新接受的连接
+//内部的私有init()函数初始化新接受的连接
 //check_state默认为分析请求行状态
 void http_conn::init()
 {
@@ -165,7 +165,7 @@ void http_conn::init()
     m_read_idx = 0;
     m_write_idx = 0;
     cgi = 0;
-    memset(m_read_buf, '\0', READ_BUFFER_SIZE);
+    memset(m_read_buf, '\0', READ_BUFFER_SIZE);//初始化读写缓冲区
     memset(m_write_buf, '\0', WRITE_BUFFER_SIZE);
     memset(m_real_file, '\0', FILENAME_LEN);
 }
