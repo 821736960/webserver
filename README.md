@@ -20,54 +20,57 @@ Linux下C++轻量级Web服务器
 * 测试前确认已安装MySQL数据库
 
     ```shell
-    //
+    //启动数据库
      sudo service mysql start
      sudo mysql -u root -p
     // 建立yourdb库
-    create database yourdb;
+    create database yourdb
 
     // 创建user表
-    USE yourdb;
+    USE yourdb
     CREATE TABLE user(
         username char(50) NULL,
         passwd char(50) NULL
-    )ENGINE=InnoDB;
+    )ENGINE=InnoDB
 
     // 添加数据
-    INSERT INTO user(username, passwd) VALUES('root', '3696');
+    INSERT INTO user(username, passwd) VALUES('root', '3696')
+    
+ 
+    
     ```
 
 * 修改main.c中的数据库初始化信息
 
     ```C++
     // root root修改为服务器数据库的登录名和密码
-	// qgydb修改为上述创建的yourdb库名
-    connPool->init("localhost", "root", "root", "yourdb", 3306, 8);
+    connPool->init("localhost", "root", "3696", "yourdb", 3306, 8);
     ```
 
 * 修改http_conn.cpp中的root路径
 
     ```C++
 	// 修改为root文件夹所在路径
-    const char* doc_root="/home/qgy/TinyWebServer/root";
+    const char* doc_root="/home/chenjinjie/webserver/root";
     ```
 
 * 生成server
 
     ```C++
-    make server
+    make clean
+    sudo make server
     ```
 
 * 启动server
 
     ```C++
-    ./server port
+    sudo ./server 9006
     ```
 
 * 浏览器端
 
     ```C++
-    ip:port
+    http://localhost:9006/
     ```
 
 个性化测试
