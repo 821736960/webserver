@@ -1,6 +1,6 @@
-Raw_version文档
+webserver
 ===============
-Linux下C++轻量级Web服务器，助力初学者快速实践网络编程，搭建属于自己的服务器.
+Linux下C++轻量级Web服务器
 
 * 使用**线程池 + epoll(ET和LT均实现) + 模拟Proactor模式**的并发模型
 * 使用**状态机**解析HTTP请求报文，支持解析**GET和POST**请求
@@ -14,13 +14,15 @@ Linux下C++轻量级Web服务器，助力初学者快速实践网络编程，搭
 	* WSL Ubuntu版本18.04
 	* MySQL版本5.7.29
 * 浏览器测试环境
-
 	* Chrome
 	
 
 * 测试前确认已安装MySQL数据库
 
-    ```C++
+    ```shell
+    //
+     sudo service mysql start
+     sudo mysql -u root -p
     // 建立yourdb库
     create database yourdb;
 
@@ -32,7 +34,7 @@ Linux下C++轻量级Web服务器，助力初学者快速实践网络编程，搭
     )ENGINE=InnoDB;
 
     // 添加数据
-    INSERT INTO user(username, passwd) VALUES('name', 'passwd');
+    INSERT INTO user(username, passwd) VALUES('root', '3696');
     ```
 
 * 修改main.c中的数据库初始化信息
