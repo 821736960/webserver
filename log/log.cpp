@@ -44,23 +44,26 @@ bool Log::init(const char *file_name, int log_buf_size, int split_lines, int max
     struct tm *sys_tm = localtime(&t);
     struct tm my_tm = *sys_tm;
 
- 
+    //查找/最后出现的位置
     const char *p = strrchr(file_name, '/');
     char log_full_name[256] = {0};
-
+    
+    //若输入的文件名没有/，则直接将时间+文件名作为日志名
     if (p == NULL)
     {
         snprintf(log_full_name, 255, "%d_%02d_%02d_%s", my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday, file_name);
     }
     else
     {
+        //将/的位置向后移动一个位置，然后复制到logname中
+       //p - file_name + 1是文件所在路径文件夹的长度
         strcpy(log_name, p + 1);
         strncpy(dir_name, file_name, p - file_name + 1);
         snprintf(log_full_name, 255, "%s%d_%02d_%02d_%s", dir_name, my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday, log_name);
     }
 
     m_today = my_tm.tm_mday;
-
+    //打开日志文件句柄
     m_fp = fopen(log_full_name, "a");
     if (m_fp == NULL)
     {
@@ -107,15 +110,16 @@ void Log::write_log(int level, const char *format, ...)
         fflush(m_fp);
         fclose(m_fp);
         char tail[16] = {0};
-       
+       //格式化日志名中的时间部分
         snprintf(tail, 16, "%d_%02d_%02d_", my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday);
-       
+       //如果是时间不是今天,则创建今天的日志，更新m_today和m_count
         if (m_today != my_tm.tm_mday)
         {
             snprintf(new_log, 255, "%s%s%s", dir_name, tail, log_name);
             m_today = my_tm.tm_mday;
             m_count = 0;
         }
+        //超过了最大行，在之前的日志名基础上加后缀, m_count/m_split_lines
         else
         {
             snprintf(new_log, 255, "%s%s%s.%lld", dir_name, tail, log_name, m_count / m_split_lines);
@@ -126,6 +130,7 @@ void Log::write_log(int level, const char *format, ...)
     m_mutex.unlock();
 
     va_list valst;
+    //将传入的format参数赋值给valst，便于格式化输出
     va_start(valst, format);
 
     string log_str;
@@ -142,7 +147,8 @@ void Log::write_log(int level, const char *format, ...)
     log_str = m_buf;
 
     m_mutex.unlock();
-
+     //若m_is_async为true表示异步，默认为同步
+    //若异步,则将日志信息加入阻塞队列,同步则加锁向文件中写
     if (m_is_async && !m_log_queue->full())
     {
         m_log_queue->push(log_str);
