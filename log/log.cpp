@@ -38,7 +38,9 @@ bool Log::init(const char *file_name, int log_buf_size, int split_lines, int max
     memset(m_buf, '\0', m_log_buf_size);
     m_split_lines = split_lines;
 
+    //获取系统时间，单位为秒;
     time_t t = time(NULL);
+    //转换成tm类型的结构体;
     struct tm *sys_tm = localtime(&t);
     struct tm my_tm = *sys_tm;
 
