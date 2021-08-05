@@ -34,7 +34,7 @@ extern int setnonblocking(int fd); //ET模式下一定要使用非阻塞IO
 
 //设置定时器相关参数
 static int pipefd[2];//建立一个pipe进行信号传送，统一事件源
-static sort_timer_lst timer_lst;
+static sort_timer_lst timer_lst;//定时器升序链表
 static int epollfd = 0;
 
 //信号处理函数
