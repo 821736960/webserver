@@ -136,11 +136,12 @@ void Log::write_log(int level, const char *format, ...)
     string log_str;
     m_mutex.lock();
 
-    //写入的具体时间内容格式
+    //写入的具体时间内容格式 将内容按48的size输出到m_buf
     int n = snprintf(m_buf, 48, "%d-%02d-%02d %02d:%02d:%02d.%06ld %s ",
                      my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday,
                      my_tm.tm_hour, my_tm.tm_min, my_tm.tm_sec, now.tv_usec, s);
     
+    //将内容按size输出到m_buf
     int m = vsnprintf(m_buf + n, m_log_buf_size - 1, format, valst);
     m_buf[n + m] = '\n';
     m_buf[n + m + 1] = '\0';
