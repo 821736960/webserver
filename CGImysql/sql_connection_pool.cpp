@@ -43,6 +43,7 @@ void connection_pool::init(string url, string User, string PassWord, string DBNa
 			cout << "Error:" << mysql_error(con);
 			exit(1);
 		}
+		//每个连接都是用root账户登录的
 		con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
 
 		if (con == NULL)
