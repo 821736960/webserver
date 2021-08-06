@@ -175,6 +175,8 @@ void http_conn::init()
 http_conn::LINE_STATUS http_conn::parse_line()
 {
     char temp;
+    //m_read_idx指向缓冲区m_read_buf的数据末尾的下一个字节
+ //m_checked_idx指向从状态机当前正在分析的字节
     for (; m_checked_idx < m_read_idx; ++m_checked_idx)
     {
         temp = m_read_buf[m_checked_idx];
