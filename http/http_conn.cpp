@@ -366,7 +366,7 @@ http_conn::HTTP_CODE http_conn::process_read()
     char *text = 0;
                                                                             //parse_line为从状态机的具体实现
     while ((m_check_state == CHECK_STATE_CONTENT && line_status == LINE_OK) || ((line_status = parse_line()) == LINE_OK))
-    {
+    {   //更新text起始位置
         text = get_line();
       //m_start_line是每一个数据行在m_read_buf中的起始位置
        //m_checked_idx表示从状态机在m_read_buf中读取的位置
