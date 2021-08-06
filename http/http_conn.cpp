@@ -251,7 +251,7 @@ bool http_conn::read_once()
 
 //解析http请求行，获得请求方法，目标url及http版本号
 http_conn::HTTP_CODE http_conn::parse_request_line(char *text)
-{
+{   //请求行中最先含有空格和\t任一字符的位置并返回
     m_url = strpbrk(text, " \t");
     if (!m_url)
     {
@@ -259,6 +259,7 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char *text)
     }
     *m_url++ = '\0';
     char *method = text;
+ //取出数据，并通过与GET和POST比较，以确定请求方式
     if (strcasecmp(method, "GET") == 0)
         m_method = GET;
     else if (strcasecmp(method, "POST") == 0)
@@ -268,20 +269,25 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char *text)
     }
     else
         return BAD_REQUEST;
+    //继续跳过空格
     m_url += strspn(m_url, " \t");
+   //使用与判断请求方式的相同逻辑，判断HTTP版本号
     m_version = strpbrk(m_url, " \t");
     if (!m_version)
         return BAD_REQUEST;
     *m_version++ = '\0';
     m_version += strspn(m_version, " \t");
+    //仅支持HTTP/1.1
     if (strcasecmp(m_version, "HTTP/1.1") != 0)
         return BAD_REQUEST;
+    //对请求资源前7个字符进行判断
+   //这里主要是有些报文的请求资源中会带有http://，这里需要对这种情况进行单独处理
     if (strncasecmp(m_url, "http://", 7) == 0)
     {
         m_url += 7;
         m_url = strchr(m_url, '/');
     }
-
+    //同样增加https情况
     if (strncasecmp(m_url, "https://", 8) == 0)
     {
         m_url += 8;
