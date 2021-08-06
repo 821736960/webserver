@@ -41,7 +41,7 @@ void http_conn::initmysql_result(connection_pool *connPool)
         LOG_ERROR("SELECT error:%s\n", mysql_error(mysql));
     }
 
-    //从表中检索完整的结果集
+    //从表中检索完整的结果集 将查询的全部结果读取，分配1个MYSQL_RES结构，并将结果置于该结构中
     MYSQL_RES *result = mysql_store_result(mysql);
 
     //返回结果集中的列数
